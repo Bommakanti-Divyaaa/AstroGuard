@@ -1,6 +1,6 @@
-# AstroGuard — VS Code Project
+# AstroGuard
 
-AstroGuard is a browser-based research/challenge prototype. The existing digital twin, vital screening, mission simulator, Vision Lab, evidence log, and the added mission-history/environment/communications demonstrations are retained. No chatbot or external AI API key is required.
+AstroGuard is a browser-based research challenge prototype. The existing digital twin, vital screening, mission simulator, Vision Lab, evidence log, and the added mission-history/environment/communications demonstrations are retained. No chatbot or external AI API key is required.
 
 ## Run in VS Code
 
