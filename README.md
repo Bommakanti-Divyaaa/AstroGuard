@@ -10,6 +10,9 @@ AstroGuard is a browser-based research challenge prototype. The existing digital
 4. Allow camera permission when using Vision Lab. Camera access requires localhost or HTTPS.
 5. Three.js and MediaPipe are loaded from CDNs, so internet access is required for the 3D skeleton and webcam landmark tracking.
 
+## Run in browser
+https://stately-chebakia-ea3df0.netlify.app/
+
 ## Modules
 
 - **Digital Twin:** interactive procedural 3D skeleton, selectable structures, health-region markers and mission signal chart.
