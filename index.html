@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <title>
+   ASTROGUARD | Mission Digital Twin
+  </title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js">
+  </script>
+  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js">
+  </script>
+  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js">
+  </script>
+  <link href="css/styles.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <header class="top">
+   <div class="brand">
+    <div class="logo">
+     ✦
+    </div>
+    <div>
+     <h1>
+      ASTROGUARD
+     </h1>
+     <p>
+      MISSION DIGITAL TWIN &middot; CREW HEALTH RESEARCH PROTOTYPE
+     </p>
+    </div>
+   </div>
+   <div class="topright">
+    <span class="pill" id="missionState">
+     MISSION SIM &middot; READY
+    </span>
+   </div>
+  </header>
+  <nav class="nav">
+   <button class="active" data-view="twin">
+    01 &middot; DIGITAL TWIN
+   </button>
+   <button data-view="vitals">
+    02 &middot; CREW VITALS &amp; ALERTS
+   </button>
+<button data-view="mission">
+    03 &middot; MISSION SIMULATOR
+   </button>
+   <button data-view="vision">
+    04 &middot; VISION LAB
+   </button>
+   <button data-view="evidence">
+    05 &middot; EVIDENCE LOG
+   </button>
+  </nav>
+  <main class="wrap">
+   <section class="view active" id="view-twin">
+    <div class="grid-main">
+     <div class="panel twin-chart-panel">
+      <div class="eyebrow">
+       Mission physiology chart
+      </div>
+      <h2>
+       Signal trajectory
+      </h2>
+      <canvas class="chart" height="300" id="missionChart" width="900">
+      </canvas>
+      <p class="sub">
+       Updates when a mission simulation is run.
+      </p>
+     </div>
+     <div class="panel">
+      <div class="eyebrow">
+       Crew member &middot; anatomical reference model
+      </div>
+      <h2>
+       Human skeletal digital twin
+      </h2>
+      <p class="sub">
+       One interactive skeleton. Select a highlighted structure to inspect it; drag to rotate and scroll to zoom.
+      </p>
+      <div class="twinbox">
+       <canvas id="twin3d">
+       </canvas>
+       <div class="twin-overlay">
+        <strong>
+         ANATOMICAL VIEW / 3D
+        </strong>
+        <span id="renderState">
+         INITIALIZING RENDERER&hellip;
+        </span>
+       </div>
+      </div>
+      <div class="twin-controls">
+       <button class="btn" id="rotateBtn">
+        ⟳ Auto rotate: ON
+       </button>
+       <button class="btn" id="frontBtn">
+        Front view
+       </button>
+       <button class="btn" id="sideBtn">
+        Side view
+       </button>
+       <button class="btn" id="resetTwin">
+        Reset view
+       </button>
+      </div>
+      <div aria-label="Human health status legend" class="health-legend">
+       <span>
+        <i class="dot green">
+        </i>
+        Green &middot; within screening range
+       </span>
+       <span>
+        <i class="dot yellow">
+        </i>
+        Yellow &middot; review / recheck
+       </span>
+       <span>
+        <i class="dot red">
+        </i>
+        Red &middot; priority medical review
+       </span>
+       <small id="skeletonHealthStatus">
+        GREEN &middot; WITHIN SCREEN
+       </small>
+       <small>
+        Markers:
+        <span id="health-head">
+         GREEN &middot; WITHIN SCREEN
+        </span>
+        &middot;
+        <span id="health-chest">
+         GREEN &middot; WITHIN SCREEN
+        </span>
+        &middot;
+        <span id="health-abdomen">
+         GREEN &middot; WITHIN SCREEN
+        </span>
+        &middot;
+        <span id="health-pelvis">
+         GREEN &middot; WITHIN SCREEN
+        </span>
+        &middot;
+        <span id="health-limbs">
+         GREEN &middot; WITHIN SCREEN
+        </span>
+        &middot;
+        <span id="health-radiation">
+         GREEN &middot; WITHIN SCREEN
+        </span>
+        . Screening cues only, not diagnoses.
+       </small>
+      </div>
+     </div>
+     <div class="panel">
+      <div class="eyebrow">
+       Structure inspector
+      </div>
+      <h2 id="boneTitle">
+       Select a bone
+      </h2>
+      <p class="sub" id="boneDesc">
+       Click any bone or joint in the 3D model to view its role and mission-research context.
+      </p>
+      <div class="detail-card">
+       <div class="sub">
+        SELECTED STRUCTURE
+       </div>
+       <div class="big" id="boneRegion">
+        &mdash;
+       </div>
+       <div class="sub" id="boneFunction">
+        No structure selected
+       </div>
+      </div>
+      <div class="eyebrow" style="margin-top:18px">
+       Mission context signals
+      </div>
+      <div class="metrics">
+       <div class="metric">
+        <small>
+         Gravity environment
+        </small>
+        <b id="gravMetric">
+         0.16 g
+        </b>
+        <em>
+         Scenario setting
+        </em>
+       </div>
+       <div class="metric">
+        <small>
+         Radiation context
+        </small>
+        <b id="radMetric">
+         Low
+        </b>
+        <em>
+         Scenario setting
+        </em>
+       </div>
+       <div class="metric">
+        <small>
+         Exercise load
+        </small>
+        <b id="loadMetric">
+         Moderate
+        </b>
+        <em>
+         Scenario setting
+        </em>
+       </div>
+       <div class="metric">
+        <small>
+         Model status
+        </small>
+        <b id="twinMetric">
+         Active
+        </b>
+        <em>
+         Visual reference only
+        </em>
+       </div>
+      </div>
+      <div class="explain">
+       Scientific boundary: this is a procedural 3D skeletal reference, not a medical scan or a validated bone-density model. Mission context values are simulated inputs, not measured astronaut data.
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="view" id="view-vitals">
+    <div class="panel">
+     <div class="eyebrow">
+      Crew health monitoring &middot; 12 original indicators
+     </div>
+     <h2>
+      12-vital assessment &amp; alert centre
+     </h2>
+     <p class="sub">
+      Enter the latest observation. Each alert comes from the entered human vital measurements and screening rules only. Thresholds are prototype screening rules&mdash;not NASA flight limits or medical diagnoses.
+     </p>
+     <div class="feature-grid" id="vitalGrid">
+      <div class="feature">
+       <label>
+        Heart rate &middot; bpm
+        <input class="vital-input" id="v_hr" max="240" min="25" type="number" value="72"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Blood pressure &middot; mmHg
+        <input class="vital-input" id="v_bp_sys" max="260" min="50" placeholder="Systolic" type="number" value="118"/>
+        <input class="vital-input" id="v_bp_dia" max="160" min="30" placeholder="Diastolic" type="number" value="76"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Blood sugar &middot; mg/dL
+        <input class="vital-input" id="v_glucose" max="600" min="20" type="number" value="95"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Body temperature &middot; &deg;C
+        <input class="vital-input" id="v_temp" max="43" min="30" step="0.1" type="number" value="36.8"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Sleep &middot; hours / 24h
+        <input class="vital-input" id="v_sleep" max="24" min="0" step="0.1" type="number" value="7.5"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Mood &amp; stress &middot; 0&ndash;10
+        <input class="vital-input" id="v_stress" max="10" min="0" step="0.1" type="number" value="3"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Exercise &middot; minutes / 24h
+        <input class="vital-input" id="v_exercise" max="600" min="0" type="number" value="45"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Space radiation &middot; mSv/day
+        <input class="vital-input" id="v_radiation" max="100" min="0" step="0.01" type="number" value="0.35"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Urine calcium &middot; mg/24h
+        <input class="vital-input" id="v_calcium" max="2000" min="0" type="number" value="180"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Hydration &middot; litres / 24h
+        <input class="vital-input" id="v_hydration" max="10" min="0" step="0.1" type="number" value="2.2"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Eye tracking quality &middot; %
+        <input class="vital-input" id="v_eye" max="100" min="0" type="number" value="92"/>
+       </label>
+      </div>
+      <div class="feature">
+       <label>
+        Cognitive speed &middot; reaction ms
+        <input class="vital-input" id="v_cognitive" max="3000" min="80" type="number" value="280"/>
+       </label>
+      </div>
+     </div>
+     <div class="row" style="margin-top:14px">
+      <div class="field">
+       <label>
+        Configured radiation review trigger &middot; mSv/day (mission-specific; not a NASA limit)
+       </label>
+       <input id="radAlertLimit" max="100" min="0.01" step="0.01" type="number" value="0.5"/>
+      </div>
+      <div class="field">
+       <label>
+        Observation note (optional)
+       </label>
+       <input id="vitalNote" maxlength="180" placeholder="e.g. post-exercise, before sleep" type="text"/>
+      </div>
+     </div>
+     <div class="row">
+      <button class="btn primary" id="assessVitals">
+       Assess 12 vitals &amp; generate alerts
+      </button>
+      <button class="btn" id="loadStressVitals">
+       Load test stress case
+      </button>
+      <button class="btn" id="resetVitals">
+       Reset values
+      </button>
+     </div>
+     <div class="metrics">
+      <div class="metric">
+       <small>
+        Overall status
+       </small>
+       <b id="vitalOverall">
+        NOT ASSESSED
+       </b>
+      </div>
+      <div class="metric">
+       <small>
+        Critical alerts
+       </small>
+       <b id="criticalCount">
+        0
+       </b>
+      </div>
+      <div class="metric">
+       <small>
+        Review alerts
+       </small>
+       <b id="reviewCount">
+        0
+       </b>
+      </div>
+      <div class="metric">
+       <small>
+        Within screen
+       </small>
+       <b id="normalCount">
+        12
+       </b>
+      </div>
+     </div>
+     <div class="eyebrow" style="margin-top:18px">
+      Human physiology alert queue &middot; what to do next
+     </div>
+     <div class="timeline" id="alertList">
+      <div class="event">
+       <time>
+        READY
+       </time>
+       <span>
+        Enter or confirm the 12 vital observations, then run assessment.
+       </span>
+       <span class="status watch">
+        PENDING
+       </span>
+      </div>
+     </div>
+     <div class="row" style="margin-top:12px">
+      <button class="btn" id="ackAlerts">
+       Acknowledge displayed alerts
+      </button>
+      <button class="btn" id="exportAlerts">
+       Export vital &amp; alert report
+      </button>
+     </div>
+     <div class="explain">
+      Safety: alerts are decision-support prompts only. For urgent symptoms or concerning measurements, follow the mission medical protocol and contact the designated flight surgeon/medical officer. Do not start, stop, or change medication, supplements, fluid loading, or EVA status based only on this prototype.
+     </div>
+
+     <div class="panel" style="margin-top:16px">
+      <div class="eyebrow">Persistent crew record · this browser</div>
+      <h2>Historical trend analysis</h2>
+      <p class="sub">Each completed 12-vital assessment is saved locally with a timestamp. Records remain in this browser until cleared.</p>
+      <div class="metrics">
+       <div class="metric"><small>Saved snapshots</small><b id="historyCount">0</b></div>
+       <div class="metric"><small>Latest heart rate</small><b id="historyLatestHR">—</b></div>
+       <div class="metric"><small>Latest systolic BP</small><b id="historyLatestBP">—</b></div>
+       <div class="metric"><small>Trend direction</small><b id="historyDirection">Waiting</b></div>
+      </div>
+      <canvas id="historyChart" class="chart" width="900" height="240" style="width:100%;margin-top:12px"></canvas>
+      <div id="historySummary" class="explain" style="margin-top:10px">No saved records yet. Run an assessment to create the first snapshot.</div>
+      <div id="historyList" class="timeline" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:10px">
+       <button class="btn" id="exportHistory">Export historical records CSV</button>
+       <button class="btn danger" id="clearHistory">Clear historical records</button>
+      </div>
+     </div>
+    </div>
+   </section>
+<section class="view" id="view-mission">
+    <div class="two">
+     <div class="panel">
+      <div class="eyebrow">
+       Time-based scenario engine
+      </div>
+      <h2>
+       Mission environment controls
+      </h2>
+      <p class="sub">
+       Run a simulated mission segment to see how changing environment and workload influence the synthetic physiology stream.
+      </p>
+      <div class="field">
+       <label>
+        Mission phase
+       </label>
+       <select id="phase">
+        <option value="transit">
+         Deep-space transit
+        </option>
+        <option value="surface">
+         Planetary surface operations
+        </option>
+        <option value="eva">
+         EVA preparation / recovery
+        </option>
+        <option value="return">
+         Return / re-adaptation
+        </option>
+       </select>
+      </div>
+      <div class="row">
+       <div class="field">
+        <label>
+         Gravity &middot; g
+        </label>
+        <input id="gravity" max="2" min="0" step="0.01" type="number" value="0.16"/>
+       </div>
+       <div class="field">
+        <label>
+         Radiation context &middot; mSv/day
+        </label>
+        <input id="radiation" max="100" min="0" step="0.01" type="number" value="0.35"/>
+       </div>
+      </div>
+      <div class="row">
+       <div class="field">
+        <label>
+         Exercise load &middot; 0&ndash;10
+        </label>
+        <input id="exercise" max="10" min="0" step="0.1" type="number" value="5"/>
+       </div>
+       <div class="field">
+        <label>
+         Sleep opportunity &middot; hours
+        </label>
+        <input id="sleep" max="12" min="0" step="0.1" type="number" value="7.5"/>
+       </div>
+      </div>
+      <div class="row">
+       <button class="btn primary" id="runMission">
+        Run 30-step mission simulation
+       </button>
+       <button class="btn" id="resetMission">
+        Reset scenario
+       </button>
+      </div>
+      <div class="explain">
+       Simulation is a what-if software model. It does not predict actual astronaut physiology, radiation dose, or clinical outcomes.
+      </div>
+
+      <div class="eyebrow" style="margin-top:18px">Extended mission timeline</div>
+      <p class="sub">Run a longer synthetic mission horizon. Daily values are generated by this prototype model, not spacecraft telemetry or a validated physiological forecast.</p>
+      <div class="field">
+       <label for="missionDurationDays">Mission duration · days (1–365)</label>
+       <input id="missionDurationDays" type="number" min="1" max="365" value="180"/>
+      </div>
+      <div class="row">
+       <button class="btn primary" id="runLongMission">Run long-duration mission</button>
+      </div>
+      <div class="metrics" style="margin-top:12px">
+       <div class="metric"><small>Timeline days</small><b id="longDays">0</b></div>
+       <div class="metric"><small>Flagged days</small><b id="longFlags">0</b></div>
+       <div class="metric"><small>Peak deviation</small><b id="longPeak">—</b></div>
+       <div class="metric"><small>Mission horizon</small><b id="longStatus">Not run</b></div>
+      </div>
+      <div class="timeline" id="longMissionEvents" style="margin-top:10px"><div class="event"><time>READY</time><span>Choose a mission duration and run the extended simulation.</span><span class="status watch">IDLE</span></div></div>
+      <div class="eyebrow" style="margin-top:14px">Previous mission runs · saved in this browser</div>
+      <div class="timeline" id="missionHistory"><div class="event"><time>NO RECORDS</time><span>Completed long-duration simulations will be stored here.</span><span class="status watch">EMPTY</span></div></div>
+     </div>
+     <div class="metrics mission-metrics">
+      <div class="metric">
+       <small>
+        Steps simulated
+       </small>
+       <b id="simSteps">
+        0
+       </b>
+      </div>
+      <div class="metric">
+       <small>
+        Peak signal deviation
+       </small>
+       <b id="peakAnomaly">
+        &mdash;
+       </b>
+      </div>
+      <div class="metric">
+       <small>
+        Scenario phase
+       </small>
+       <b id="phaseLabel">
+        Transit
+       </b>
+      </div>
+      <div class="metric">
+       <small>
+        Mission state
+       </small>
+       <b id="simState">
+        Ready
+       </b>
+      </div>
+     </div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+     <div class="eyebrow">
+      Events generated from simulation
+     </div>
+     <h2>
+      Mission event stream
+     </h2>
+     <div class="timeline" id="missionEvents">
+      <div class="event">
+       <time>
+        &mdash;
+       </time>
+       <span>
+        No simulation has been run.
+       </span>
+       <span class="status watch">
+        IDLE
+       </span>
+      </div>
+     </div>
+
+    <div class="two" style="margin-top:14px">
+     <div class="panel">
+      <div class="eyebrow">Closed-loop habitat · environmental monitoring</div>
+      <h2>Cabin environment console</h2>
+      <p class="sub">Enter readings manually or enable a clearly labelled synthetic sensor stream. No spacecraft sensors are connected.</p>
+      <div class="row">
+       <div class="field"><label for="cabinCO2">CO₂ · mmHg</label><input id="cabinCO2" type="number" min="0" max="100" step="0.1" value="0.3"/></div>
+       <div class="field"><label for="cabinO2">O₂ · %</label><input id="cabinO2" type="number" min="0" max="100" step="0.1" value="20.9"/></div>
+      </div>
+      <div class="row">
+       <div class="field"><label for="cabinPressure">Cabin pressure · kPa</label><input id="cabinPressure" type="number" min="0" max="200" step="0.1" value="101.3"/></div>
+       <div class="field"><label for="cabinTemp">Temperature · °C</label><input id="cabinTemp" type="number" min="-50" max="80" step="0.1" value="22"/></div>
+      </div>
+      <div class="row">
+       <div class="field"><label for="cabinHumidity">Relative humidity · %</label><input id="cabinHumidity" type="number" min="0" max="100" step="1" value="45"/></div>
+       <div class="field"><label for="cabinSensorMode">Sensor mode</label><select id="cabinSensorMode"><option value="manual">Manual input</option><option value="simulated">Simulated sensor stream</option></select></div>
+      </div>
+      <div class="metrics">
+       <div class="metric"><small>Cabin status</small><b id="cabinStatus">NOT ASSESSED</b></div>
+       <div class="metric"><small>CO₂ reading</small><b id="cabinCO2Status">0.3 mmHg</b></div>
+       <div class="metric"><small>O₂ reading</small><b id="cabinO2Status">20.9%</b></div>
+       <div class="metric"><small>Last update</small><b id="cabinUpdated">—</b></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="assessCabin">Assess cabin environment</button></div>
+      <div class="timeline" id="cabinAlerts" style="margin-top:10px"><div class="event"><time>READY</time><span>Assess the cabin readings to see environmental status.</span><span class="status watch">PENDING</span></div></div>
+      <div class="explain">Prototype review bands only. Actual spacecraft atmosphere limits depend on vehicle, mission phase, sensor calibration and approved flight rules.</div>
+     </div>
+     <div class="panel">
+      <div class="eyebrow">Ground link · communications monitor</div>
+      <h2>Earth communication status</h2>
+      <p class="sub">This panel simulates a telemetry packet lifecycle. It does not connect to NASA, a spacecraft radio, DSN, or the internet ground network.</p>
+      <div class="metrics">
+       <div class="metric"><small>Link state</small><b id="earthLinkState">SIMULATED · IDLE</b></div>
+       <div class="metric"><small>Round-trip delay</small><b id="earthLatency">—</b></div>
+       <div class="metric"><small>Queued packets</small><b id="earthQueue">0</b></div>
+       <div class="metric"><small>Delivered packets</small><b id="earthDelivered">0</b></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+       <button class="btn primary" id="sendEarthPacket">Transmit demo health packet</button>
+       <button class="btn" id="simulateEarthOutage">Simulate link outage</button>
+       <button class="btn" id="restoreEarthLink">Restore demo link</button>
+      </div>
+      <div class="timeline" id="earthEvents" style="margin-top:10px"><div class="event"><time>GROUND LINK</time><span>No packet transmitted. Status is a local simulation.</span><span class="status watch">SIMULATED</span></div></div>
+      <div class="explain">Real communication requires an authenticated spacecraft communications interface, link telemetry and ground-station integration. A successful demo packet only confirms this browser simulation.</div>
+     </div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+     <div class="eyebrow">Crew safety knowledge base</div>
+     <h2>How environmental hazards can affect crew health</h2>
+     <p class="sub">Explanations below describe general physiological mechanisms. They are not diagnoses or vehicle-specific alarm thresholds.</p>
+     <div id="hazardExplanations" class="timeline">
+      <div class="event"><time>CO₂</time><span>Elevated carbon dioxide can cause headache, breathlessness, impaired concentration and, at sufficiently high exposure, serious toxicity.</span><span class="status watch">MONITOR</span></div>
+      <div class="event"><time>O₂</time><span>Low oxygen availability can cause hypoxia, reduced judgement, confusion and loss of consciousness. Fire risk also depends on oxygen concentration and materials.</span><span class="status watch">MONITOR</span></div>
+      <div class="event"><time>PRESSURE</time><span>Pressure loss can reduce oxygen partial pressure; rapid decompression can cause barotrauma and other acute hazards.</span><span class="status watch">MONITOR</span></div>
+      <div class="event"><time>TEMPERATURE</time><span>Excess heat increases heat strain and dehydration risk; cold exposure can impair dexterity and, if severe, cause hypothermia.</span><span class="status watch">MONITOR</span></div>
+      <div class="event"><time>HUMIDITY</time><span>High humidity reduces evaporative cooling and can promote condensation; very low humidity can irritate eyes and airways.</span><span class="status watch">MONITOR</span></div>
+     </div>
+    </div>
+    </div>
+   </section>
+   <section class="view" id="view-vision">
+    <div class="two">
+     <div class="panel">
+      <div class="eyebrow">
+       Camera-based computer vision
+      </div>
+      <h2>
+       Live face &amp; iris tracking
+      </h2>
+      <p class="sub">
+       Uses MediaPipe FaceMesh iris landmarks when CDN assets and camera permission are available. This is a tracking demonstration, not a clinical SANS assessment.
+      </p>
+      <div class="camera-stage">
+       <video autoplay="" id="webcam-preview" muted="" playsinline="">
+       </video>
+       <canvas id="dotCanvas">
+       </canvas>
+       <div class="camhud" id="gaze-hud">
+        CAMERA STANDBY &middot; NOT TRACKING
+       </div>
+      </div>
+      <div class="row">
+       <button class="btn primary" id="startEye">
+        Start camera tracking
+       </button>
+       <button class="btn danger" id="stopEye">
+        Stop camera
+       </button>
+      </div>
+      <div class="metrics">
+       <div class="metric">
+        <small>
+         Face detection
+        </small>
+        <b id="faceDetection">
+         Waiting
+        </b>
+       </div>
+       <div class="metric">
+        <small>
+         Iris position
+        </small>
+        <b id="irisPosition">
+         &mdash;
+        </b>
+       </div>
+       <div class="metric">
+        <small>
+         Tracking frames
+        </small>
+        <b id="trackingFrames">
+         0
+        </b>
+       </div>
+       <div class="metric">
+        <small>
+         Target proximity
+        </small>
+        <b id="gazeProximity">
+         &mdash;
+        </b>
+       </div>
+      </div>
+     </div>
+     <div class="panel">
+      <div class="eyebrow">
+       Computer performance task
+      </div>
+      <h2>
+       Reaction-time protocol
+      </h2>
+      <p class="sub">
+       Wait for the target to turn green, then press the response button. Premature responses are logged separately.
+      </p>
+      <div class="detail-card" style="text-align:center;padding:28px">
+       <div class="big" id="reactionDisplay">
+        READY
+       </div>
+       <p class="sub" id="reactionHint">
+        Start a trial. Do not respond until the green cue appears.
+       </p>
+      </div>
+      <div class="row">
+       <button class="btn primary" id="startReaction">
+        Start trial
+       </button>
+       <button class="btn" id="respondReaction">
+        Respond
+       </button>
+       <button class="btn" id="resetReaction">
+        Reset
+       </button>
+      </div>
+      <div class="metrics">
+       <div class="metric">
+        <small>
+         Last response
+        </small>
+        <b id="lastReaction">
+         &mdash;
+        </b>
+       </div>
+       <div class="metric">
+        <small>
+         Mean response
+        </small>
+        <b id="meanReaction">
+         &mdash;
+        </b>
+       </div>
+       <div class="metric">
+        <small>
+         False starts
+        </small>
+        <b id="falseStarts">
+         0
+        </b>
+       </div>
+       <div class="metric">
+        <small>
+         Completed trials
+        </small>
+        <b id="trialCount">
+         0
+        </b>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="view" id="view-evidence">
+    <div class="two">
+     <div class="panel">
+      <div class="eyebrow">
+       Audit trail
+      </div>
+      <h2>
+       Evidence &amp; event log
+      </h2>
+      <p class="sub">
+       Vital assessments, mission simulations and camera state transitions are recorded locally in this browser session.
+      </p>
+      <div class="log" id="evidenceLog">
+       [BOOT] AstroGuard initialized. No real astronaut data connected.
+      </div>
+      <div class="row" style="margin-top:10px">
+       <button class="btn primary" id="exportReport">
+        Export session report JSON
+       </button>
+       <button class="btn" id="exportLog">
+        Export event log CSV
+       </button>
+       <button class="btn danger" id="clearLog">
+        Clear local log
+       </button>
+      </div>
+     </div>
+     <div class="panel">
+      <div class="eyebrow">
+       Data provenance &amp; limitations
+      </div>
+      <h2>
+       Scientific integrity register
+      </h2>
+      <div class="timeline">
+       <div class="event">
+        <time>
+         3D model
+        </time>
+        <span>
+         Procedural anatomical reference geometry
+        </span>
+        <span class="status watch">
+         NOT SCAN
+        </span>
+       </div>
+       <div class="event">
+        <time>
+         Research model
+        </time>
+        <span>
+         Optional baseline-deviation analysis; not used for medical alerts
+        </span>
+        <span class="status watch">
+         RESEARCH ONLY
+        </span>
+       </div>
+       <div class="event">
+        <time>
+         Camera
+        </time>
+        <span>
+         MediaPipe face / iris landmarks via CDN
+        </span>
+        <span class="status watch">
+         EXPERIMENTAL
+        </span>
+       </div>
+       <div class="event">
+        <time>
+         Mission data
+        </time>
+        <span>
+         Scenario generator; no live spacecraft telemetry
+        </span>
+        <span class="status watch">
+         SIMULATED
+        </span>
+       </div>
+       <div class="event">
+        <time>
+         Clinical use
+        </time>
+        <span>
+         No diagnosis, treatment, or flight certification
+        </span>
+        <span class="status high">
+         NOT VALIDATED
+        </span>
+       </div>
+      </div>
+      <div class="explain">
+       NASA Space Apps project prototype. NASA branding, data access, or challenge participation does not imply NASA endorsement. For research use, document dataset version, license, preprocessing, cohort, and independent validation before interpreting model performance.
+      </div>
+     </div>
+    </div>
+   </section>
+   <p class="foot">
+    ASTROGUARD &middot; Research prototype &middot; Local browser processing &middot; No data is uploaded by this page. External CDN libraries are required for 3D rendering and webcam face tracking.
+   </p>
+  </main>
+  <script src="js/app.js">
+  </script>
+ </body>
+</html>
